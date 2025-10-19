@@ -1,0 +1,17 @@
+{
+  "name": "my-cypress-project",
+  "version": "1.0.0",
+  "description": "A Cypress project for testing user registration functionality.",
+  "main": "index.js",
+  "scripts": {
+    "test": "cypress open",
+    "cy": "cypress run",
+    "open": "cypress open"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^7.6.0",
+    "cypress": "^12.0.0"
+  },
+  "author": "",
+  "license": "ISC"
+}
