@@ -94,8 +94,171 @@ describe('Cadastro', () => {
         //Mensagem de erro não recomendada, pois revela os emails que estão cadastrados no sistema
     });
 
+    it('CD004 - Tentativa de cadastro comum com todos os campos vazios', () => {
 
+        cy.visit('https://front.serverest.dev/cadastrarusuarios');
+        cy.get('[data-testid="cadastrar"]').click();
 
+        cy.get('.form > :nth-child(3)').should('be.visible').and('contain', 'Nome é obrigatório');
+        cy.get('.form > :nth-child(4)').should('be.visible').and('contain', 'Email é obrigatório');
+        cy.get('.form > :nth-child(5)').should('be.visible').and('contain', 'Password é obrigatório');
+
+        cy.location('pathname').should('eq', '/cadastrarusuarios');
+    });
+
+    it('CD005 - Tentativa de cadastro como administrador com todos os campos vazios', () => {
+
+        cy.visit('https://front.serverest.dev/cadastrarusuarios');
+
+        cy.get('[data-testid="checkbox"]').check();
+        cy.get('[data-testid="cadastrar"]').click();
+
+        cy.get('.form > :nth-child(3)').should('be.visible').and('contain', 'Nome é obrigatório');
+        cy.get('.form > :nth-child(4)').should('be.visible').and('contain', 'Email é obrigatório');
+        cy.get('.form > :nth-child(5)').should('be.visible').and('contain', 'Password é obrigatório');
+
+        cy.location('pathname').should('eq', '/cadastrarusuarios');
+    });
+
+    it('CD006 - Tentativa de cadastro sem preencher o campo de nome', () => {
+        //Comandos do faker para gerar dados aleatórios        
+        const first = faker.name.firstName();
+        const last = faker.name.lastName();
+        const nome = `${first} ${last}`;
+        const email = faker.internet.email(first, last);
+        const senha = faker.internet.password(10);
+
+        cy.visit('https://front.serverest.dev/cadastrarusuarios');
+
+        //Intercepta a requisição de criação de usuário para aguardar sua conclusão        
+        cy.intercept('POST', '**/usuarios').as('createUser');
+
+        cy.get('[data-testid="email"]').type(email);
+        cy.get('[data-testid="password"]').type(senha);
+        cy.get('[data-testid="cadastrar"]').click();
+
+        cy.get('.alert').should('be.visible').and('contain', 'Nome é obrigatório');
+
+        cy.location('pathname').should('eq', '/cadastrarusuarios');
+    });
+
+    it('CD007 - Tentativa de cadastro sem preencher o campo de email', () => {
+        //Comandos do faker para gerar dados aleatórios        
+        const first = faker.name.firstName();
+        const last = faker.name.lastName();
+        const nome = `${first} ${last}`;
+        const email = faker.internet.email(first, last);
+        const senha = faker.internet.password(10);
+
+        cy.visit('https://front.serverest.dev/cadastrarusuarios');
+
+        //Intercepta a requisição de criação de usuário para aguardar sua conclusão        
+        cy.intercept('POST', '**/usuarios').as('createUser');
+
+        cy.get('[data-testid="nome"]').type(nome);
+        cy.get('[data-testid="password"]').type(senha);
+        cy.get('[data-testid="cadastrar"]').click();
+
+        cy.get('.alert').should('be.visible').and('contain', 'Email é obrigatório');
+
+        cy.location('pathname').should('eq', '/cadastrarusuarios');
+    });
+
+    it('CD008 - Tentativa de cadastro sem preencher o campo de senha', () => {
+        //Comandos do faker para gerar dados aleatórios        
+        const first = faker.name.firstName();
+        const last = faker.name.lastName();
+        const nome = `${first} ${last}`;
+        const email = faker.internet.email(first, last);
+        const senha = faker.internet.password(10);
+
+        cy.visit('https://front.serverest.dev/cadastrarusuarios');
+
+        //Intercepta a requisição de criação de usuário para aguardar sua conclusão        
+        cy.intercept('POST', '**/usuarios').as('createUser');
+
+        cy.get('[data-testid="nome"]').type(nome);
+        cy.get('[data-testid="email"]').type(email);
+        cy.get('[data-testid="cadastrar"]').click();
+
+        cy.get('.alert').should('be.visible').and('contain', 'Password é obrigatório');
+
+        cy.location('pathname').should('eq', '/cadastrarusuarios');
+    });
+
+    it('CD009 - Tentativa de cadastro com e-mail sem "@"', () => {
+        const first = faker.name.firstName();
+        const last = faker.name.lastName();
+        const nome = `${first} ${last}`;
+        const senha = faker.internet.password(10);
+
+        cy.visit('https://front.serverest.dev/cadastrarusuarios');
+
+        cy.get('[data-testid="nome"]').type(nome);
+        cy.get('[data-testid="email"]').type('emailinvalido.com.br').blur();
+        cy.get('[data-testid="password"]').type(senha);
+
+        // Verifica a validação HTML5 do input (checkValidity + validationMessage)
+        cy.get('[data-testid="email"]').then($input => {
+            expect($input[0].checkValidity()).to.be.false;
+            expect($input[0].validationMessage).to.be.a('string').and.not.be.empty;
+            // mensagem pode variar por navegador/idioma; checagem mais flexível
+            expect($input[0].validationMessage.toLowerCase()).to.include('@');
+        });
+
+        // Garante que não houve requisição de criação de usuário
+        cy.intercept('POST', '**/usuarios').as('createUser');
+        cy.get('[data-testid="cadastrar"]').click();
+        cy.get('@createUser.all').should('have.length', 0);
+
+        // Permaneceu na página de cadastro
+        cy.location('pathname').should('eq', '/cadastrarusuarios');
+    });
+
+    it('CD010 - Tentativa de cadastro com e-mail incompleto', () => {
+        const first = faker.name.firstName();
+        const last = faker.name.lastName();
+        const nome = `${first} ${last}`;
+        const senha = faker.internet.password(10);
+
+        cy.visit('https://front.serverest.dev/cadastrarusuarios');
+
+        cy.get('[data-testid="nome"]').type(nome);
+        cy.get('[data-testid="email"]').type('emailinvalido@').blur();
+        cy.get('[data-testid="password"]').type(senha);
+
+        // Verifica a validação HTML5 do input (checkValidity + validationMessage)
+        cy.get('[data-testid="email"]').then($input => {
+            expect($input[0].checkValidity()).to.be.false;
+            expect($input[0].validationMessage).to.be.a('string').and.not.be.empty;
+        });
+
+        // Garante que não houve requisição de criação de usuário
+        cy.intercept('POST', '**/usuarios').as('createUser');
+        cy.get('[data-testid="cadastrar"]').click();
+        cy.get('@createUser.all').should('have.length', 0);
+
+        // Permaneceu na página de cadastro
+        cy.location('pathname').should('eq', '/cadastrarusuarios');
+    });
+
+    it('CD011 - Tentativa de cadastro com e-mail inválido', () => {
+        const first = faker.name.firstName();
+        const last = faker.name.lastName();
+        const nome = `${first} ${last}`;
+        const senha = faker.internet.password(10);
+
+        cy.visit('https://front.serverest.dev/cadastrarusuarios');
+
+        cy.get('[data-testid="nome"]').type(nome);
+        cy.get('[data-testid="email"]').type('emailinvalido@123').blur();
+        cy.get('[data-testid="password"]').type(senha);
+        cy.get('[data-testid="cadastrar"]').click();
+
+        cy.get('.alert').should('be.visible').and('contain', 'Email deve ser um email válido');
+
+        cy.location('pathname').should('eq', '/cadastrarusuarios');
+    });
 
     //Fim do describe
 });
