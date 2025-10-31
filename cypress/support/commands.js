@@ -93,8 +93,7 @@ Cypress.Commands.add('login', (email, senha) => {
     cy.get('[data-testid="entrar"]').click();
 });
 
-
-// cria usuário via API (útil para setups rápidos e idempotentes)
+// cria usuário via API (retorna chain Cypress)
 Cypress.Commands.add('createUserApi', (email, password, { administrador = "false", nome } = {}) => {
   const first = nome ? nome.split(' ')[0] : faker.name.firstName();
   const last = nome ? nome.split(' ').slice(1).join(' ') || faker.name.lastName() : faker.name.lastName();
@@ -105,33 +104,37 @@ Cypress.Commands.add('createUserApi', (email, password, { administrador = "false
     administrador: administrador
   };
 
+  // retorna a chain cy.request
   return cy.request({
     method: 'POST',
     url: 'https://serverest.dev/usuarios',
     body,
     failOnStatusCode: false
   }).then(resp => {
-    // retorna os dados e a resposta da API para uso nos testes
-    return { ...body, apiResponse: resp };
+    // retorna um objeto através de cy.wrap para manter a chain Cypress
+    return cy.wrap({ ...body, apiResponse: resp });
   });
 });
 
-// login programático (usa endpoint de login e coloca token/localStorage)
+// login programático (retorna chain Cypress)
 Cypress.Commands.add('loginApi', (email, password) => {
   return cy.request({
     method: 'POST',
     url: 'https://serverest.dev/login',
     body: { email, password },
     failOnStatusCode: false
-  }).then(resp => {
+ }).then(resp => {
+    // se precisar persistir token na UI, faça dentro da chain (não retorne o objeto bruto)
     if (resp.status === 200 && resp.body.authorization) {
-      // ajusta a chave de armazenamento conforme sua app
-      cy.visit('about:blank'); // garante contexto do window
-      cy.window().then(win => {
-        win.localStorage.setItem('token', resp.body.authorization);
+      // substitui about:blank por uma URL válida da aplicação
+      // se você configurou baseUrl em cypress.config.js pode usar cy.visit('/')
+      return cy.visit('https://front.serverest.dev').then(() => {
+        return cy.window().then(win => {
+          win.localStorage.setItem('token', resp.body.authorization);
+          return resp; // retorna resp dentro da chain
+        });
       });
-      return resp.body;
     }
-    return resp;
+    return resp; // retorna resp dentro da chain
   });
 });
